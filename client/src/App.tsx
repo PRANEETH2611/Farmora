@@ -8,6 +8,7 @@ import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 
 import Home from "@/pages/home";
+import About from "@/pages/about";
 import TutorialsPage from "@/pages/tutorials";
 import TutorialDetail from "@/pages/tutorial-detail";
 import UploadPage from "@/pages/upload";

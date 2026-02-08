@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, PlayCircle, Sprout, ShoppingBag, Brain, Leaf } from "lucide-react";
+import { ArrowRight, PlayCircle, Sprout, ShoppingBag, Brain, Leaf, Users, Check, Globe, Award } from "lucide-react";
 import { Link } from "wouter";
 import TutorialCard from "@/components/ui-custom/tutorial-card";
 import KitCard from "@/components/ui-custom/kit-card";
 import { MOCK_TUTORIALS, MOCK_KITS } from "@/mock/data";
 import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 
 export default function Home() {
   const featuredTutorials = MOCK_TUTORIALS.slice(0, 3);
@@ -43,26 +44,69 @@ export default function Home() {
               </Button>
             </Link>
           </div>
+
+          <div className="flex items-center gap-4 pt-4">
+            <div className="flex -space-x-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-10 w-10 rounded-full border-2 border-white bg-muted overflow-hidden">
+                  <img src={`https://i.pravatar.cc/100?img=${i+10}`} alt="User" />
+                </div>
+              ))}
+            </div>
+            <p className="text-sm font-medium">Joined by <span className="text-primary">10,000+</span> growers</p>
+          </div>
         </div>
         
-        <div className="relative animate-in fade-in zoom-in duration-1000 delay-200">
-          <div className="relative aspect-square overflow-hidden rounded-[4rem] rotate-3 shadow-2xl border-8 border-white">
+        <div className="relative group">
+          <motion.div 
+            whileHover={{ rotateY: 5, rotateX: -5, perspective: 1000 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="relative aspect-square overflow-hidden rounded-[4rem] shadow-2xl border-8 border-white bg-muted"
+          >
             <img 
               src="/images/farmora-hero.png" 
               alt="Organic Growth" 
-              className="w-full h-full object-cover -rotate-3 scale-110"
+              className="w-full h-full object-cover scale-110"
             />
-          </div>
-          <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-3xl shadow-xl border border-border/50 animate-bounce-subtle">
-             <div className="flex items-center gap-4">
-               <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                 <Sprout className="h-6 w-6 text-primary" />
+          </motion.div>
+          
+          <div className="absolute -bottom-6 -left-6 bg-white p-5 rounded-2xl shadow-xl border border-border/50 animate-bounce-subtle max-w-[200px] z-10">
+             <div className="flex flex-col gap-2">
+               <div className="flex items-center gap-2 text-primary font-bold text-xs">
+                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                 LIVE ANALYSIS
                </div>
-               <div>
-                 <p className="text-sm font-bold">12k+ Farmers</p>
-                 <p className="text-xs text-muted-foreground">Growing organically</p>
-               </div>
+               <p className="text-sm font-bold leading-tight">Nitrogen levels optimal for leafy greens.</p>
              </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Cultivate Knowledge */}
+      <section className="py-24 bg-[#fcfbf7]/50">
+        <div className="container px-4 text-center space-y-16">
+          <div className="space-y-4">
+            <h2 className="text-5xl font-bold tracking-tight">Cultivate Knowledge</h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Our AI-powered platform turns raw video content into structured, actionable farming guides.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-12">
+            {[
+              { icon: PlayCircle, title: "Watch", desc: "Browse expert video tutorials" },
+              { icon: Sprout, title: "Transcribe", desc: "AI extracts key steps instantly" },
+              { icon: Leaf, title: "Learn", desc: "Get summarized insights & tips" },
+              { icon: Award, title: "Apply", desc: "Put knowledge into practice" },
+            ].map((feature, i) => (
+              <div key={i} className="space-y-4">
+                <div className="h-16 w-16 rounded-full bg-primary/5 text-primary flex items-center justify-center mx-auto border border-primary/10">
+                  <feature.icon className="h-8 w-8" />
+                </div>
+                <h3 className="text-xl font-bold">{feature.title}</h3>
+                <p className="text-muted-foreground text-sm">{feature.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -113,14 +157,19 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="container px-4 py-24">
-        <div className="relative overflow-hidden rounded-[3rem] bg-primary px-8 py-20 text-center text-primary-foreground">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent)]" />
-          <h2 className="relative text-4xl md:text-6xl font-bold mb-8">Ready to start your garden?</h2>
-          <Link href="/tutorials">
-            <Button size="lg" className="relative h-16 px-12 text-xl rounded-full bg-white text-primary hover:bg-white/90 shadow-2xl">
-              Get Started for Free
+      {/* CTA Section - Matching Image */}
+      <section className="relative py-32 overflow-hidden bg-primary text-primary-foreground text-center">
+        <div className="absolute inset-0 opacity-10">
+           <img src="/images/farmora-hero.png" alt="Overlay" className="w-full h-full object-cover mix-blend-overlay" />
+        </div>
+        <div className="container relative z-10 space-y-8">
+          <h2 className="text-5xl md:text-7xl font-bold tracking-tight">Ready to grow your own food?</h2>
+          <p className="text-xl text-primary-foreground/80 max-w-xl mx-auto">
+            Join thousands of organic farmers sharing their knowledge and earning rewards.
+          </p>
+          <Link href="/upload">
+            <Button size="lg" className="h-16 px-12 text-xl rounded-full bg-[#fdfaf3] text-foreground hover:bg-white shadow-2xl">
+              Start Sharing Today
             </Button>
           </Link>
         </div>

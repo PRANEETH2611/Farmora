@@ -1,7 +1,9 @@
-import FilterBar from "@/components/ui-custom/filter-bar";
 import TutorialCard from "@/components/ui-custom/tutorial-card";
 import { MOCK_TUTORIALS } from "@/mock/data";
 import { useState } from "react";
+import { Search, SlidersHorizontal } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function TutorialsPage() {
   const [search, setSearch] = useState("");
@@ -19,18 +21,38 @@ export default function TutorialsPage() {
   return (
     <div className="container px-4 py-8 min-h-screen">
       <div className="max-w-4xl mx-auto space-y-8">
-        <div className="space-y-2">
-          <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground">Tutorial Library</h1>
-          <p className="text-muted-foreground">Explore practical guides for organic farming.</p>
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h1 className="text-5xl font-bold tracking-tight">Tutorials</h1>
+            <p className="text-xl text-muted-foreground">Expert guides structured by AI.</p>
+          </div>
         </div>
 
-        <FilterBar 
-          onSearch={setSearch} 
-          onFilterChange={(key, val) => setFilters(prev => ({ ...prev, [key]: val }))} 
-        />
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input 
+              placeholder="Search tutorials..." 
+              className="h-14 pl-12 rounded-2xl bg-white border-border shadow-sm focus-visible:ring-primary"
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+            {["All", "Compost", "Bio-pesticide", "Fertilizer", "Planting", "Soil Health"].map((cat) => (
+              <Button 
+                key={cat}
+                variant={filters.category === cat.toLowerCase() || (cat === "All" && filters.category === "all") ? "default" : "outline"}
+                className="h-14 px-6 rounded-2xl font-medium border-border whitespace-nowrap"
+                onClick={() => setFilters(prev => ({ ...prev, category: cat.toLowerCase() }))}
+              >
+                {cat}
+              </Button>
+            ))}
+          </div>
+        </div>
 
         {filteredTutorials.length > 0 ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
             {filteredTutorials.map(tutorial => (
               <TutorialCard key={tutorial.id} tutorial={tutorial} />
             ))}
