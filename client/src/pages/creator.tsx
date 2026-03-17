@@ -1,11 +1,31 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MOCK_CREATOR_STATS } from "@/mock/data";
 import { formatRupee } from "@/lib/utils";
 import { TrendingUp, Users, Clock, DollarSign, Sparkles, Trophy } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { creatorsQuery, quantumCreatorOptimize, type Creator } from "@/lib/api";
+import { useState, useEffect } from "react";
 
 export default function CreatorDashboard() {
+  const { data: allCreators = [] } = useQuery(creatorsQuery());
+  const [optimizedCreators, setOptimizedCreators] = useState<Creator[]>([]);
+  const [fairnessScore, setFairnessScore] = useState(0);
+
+  useEffect(() => {
+    if (allCreators.length > 0) {
+      quantumCreatorOptimize().then(result => {
+        setOptimizedCreators(result.selected);
+        setFairnessScore(result.fairnessScore);
+      }).catch(console.error);
+    }
+  }, [allCreators]);
+
+  const topCreators = optimizedCreators.length > 0 ? optimizedCreators.slice(0, 5) : allCreators.slice(0, 5);
+  
+  const totalViews = allCreators.reduce((s, c) => s + c.totalViews, 0);
+  const avgEngagement = allCreators.length > 0 ? Math.round(allCreators.reduce((s, c) => s + c.engagementScore, 0) / allCreators.length) : 0;
+
   const chartData = [
     { name: 'Mon', views: 4000 },
     { name: 'Tue', views: 3000 },
@@ -14,12 +34,6 @@ export default function CreatorDashboard() {
     { name: 'Fri', views: 1890 },
     { name: 'Sat', views: 2390 },
     { name: 'Sun', views: 3490 },
-  ];
-
-  const topCreators = [
-    { name: "EcoGardener Jane", score: 98, quantumSelected: true },
-    { name: "Dr. Green", score: 95, quantumSelected: false },
-    { name: "Organic Mike", score: 92, quantumSelected: false },
   ];
 
   return (
@@ -37,34 +51,10 @@ export default function CreatorDashboard() {
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard 
-          title="Total Earnings" 
-          value={formatRupee(MOCK_CREATOR_STATS.commissions)} 
-          icon={DollarSign}
-          desc="+12% from last month"
-          trend="up"
-        />
-        <StatsCard 
-          title="Total Views" 
-          value={MOCK_CREATOR_STATS.totalViews.toLocaleString()} 
-          icon={Users}
-          desc="+5% new viewers"
-          trend="up"
-        />
-        <StatsCard 
-          title="Watch Time" 
-          value={MOCK_CREATOR_STATS.watchTime} 
-          icon={Clock}
-          desc="Consistent engagement"
-          trend="neutral"
-        />
-        <StatsCard 
-          title="Engagement Score" 
-          value={MOCK_CREATOR_STATS.engagementScore} 
-          icon={TrendingUp}
-          desc="Top 5% of creators"
-          trend="up"
-        />
+        <StatsCard title="Total Earnings" value={formatRupee(12500)} icon={DollarSign} desc="+12% from last month" trend="up" />
+        <StatsCard title="Total Views" value={totalViews.toLocaleString()} icon={Users} desc="+5% new viewers" trend="up" />
+        <StatsCard title="Watch Time" value="1.2k hrs" icon={Clock} desc="Consistent engagement" trend="neutral" />
+        <StatsCard title="Avg Engagement" value={`${avgEngagement}%`} icon={TrendingUp} desc="Platform average" trend="up" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -77,7 +67,7 @@ export default function CreatorDashboard() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>
                   <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
+                  <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                   <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} />
                   <Bar dataKey="views" radius={[6, 6, 0, 0]}>
                     {chartData.map((entry, index) => (
@@ -90,66 +80,50 @@ export default function CreatorDashboard() {
           </CardContent>
         </Card>
 
-        <div className="space-y-8">
-          <Card className="rounded-[2rem] border-none shadow-lg bg-gradient-to-br from-primary/10 to-transparent">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-primary" />
-                Top Creators
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {topCreators.map((creator, i) => (
-                  <motion.div 
-                    key={i} 
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className={`flex items-center justify-between p-4 rounded-xl border ${creator.quantumSelected ? 'bg-white shadow-md border-primary/30' : 'bg-muted/50 border-transparent'}`}
-                  >
+        <Card className="rounded-[2rem] border-none shadow-lg bg-gradient-to-br from-primary/10 to-transparent">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-primary" />
+              Top Creators
+            </CardTitle>
+            {fairnessScore > 0 && (
+              <p className="text-xs text-primary font-mono">Fairness Score: {(fairnessScore * 100).toFixed(0)}%</p>
+            )}
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {topCreators.map((creator, i) => (
+                <motion.div 
+                  key={creator.id} 
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className={`flex items-center justify-between p-4 rounded-xl border ${i === 0 ? 'bg-white shadow-md border-primary/30' : 'bg-muted/50 border-transparent'}`}
+                  data-testid={`card-creator-${creator.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    {creator.avatar && (
+                      <img src={creator.avatar} alt={creator.name} className="h-8 w-8 rounded-full" />
+                    )}
                     <div>
                       <p className="font-bold text-sm flex items-center gap-2">
                         {creator.name}
-                        {creator.quantumSelected && (
-                          <Sparkles className="w-3 h-3 text-primary animate-pulse" />
+                        {creator.isNew && (
+                          <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase">New</span>
                         )}
+                        {i === 0 && <Sparkles className="w-3 h-3 text-primary animate-pulse" />}
                       </p>
-                      {creator.quantumSelected && (
-                        <p className="text-[10px] text-primary font-medium mt-1">Quantum Selected (Fairness + Diversity)</p>
-                      )}
-                    </div>
-                    <div className="text-right font-bold text-xl text-primary">
-                      {creator.score}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-[2rem] border-none shadow-lg">
-            <CardHeader>
-              <CardTitle>Recent Payouts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {MOCK_CREATOR_STATS.recentPayouts.map((payout, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 rounded-xl border bg-muted/20">
-                    <div>
-                      <p className="font-medium text-sm">Commission</p>
-                      <p className="text-xs text-muted-foreground">{payout.date}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-foreground">{formatRupee(payout.amount)}</p>
-                      <p className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full inline-block mt-1 font-bold">{payout.status}</p>
+                      <p className="text-[10px] text-muted-foreground">{creator.category} &middot; {creator.tutorialCount} tutorials</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                  <div className="text-right font-bold text-xl text-primary">
+                    {Math.round(creator.engagementScore)}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -165,7 +139,7 @@ function StatsCard({ title, value, icon: Icon, desc, trend }: any) {
             <Icon className="h-5 w-5 text-primary" />
           </div>
         </div>
-        <div className="text-3xl font-bold">{value}</div>
+        <div className="text-3xl font-bold" data-testid={`text-stat-${title.toLowerCase().replace(/\s/g, '-')}`}>{value}</div>
         <p className={`text-xs mt-2 font-medium ${trend === 'up' ? 'text-primary' : 'text-muted-foreground'}`}>
           {desc}
         </p>

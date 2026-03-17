@@ -3,16 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Sparkles, Sprout, Leaf, CalendarDays, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { quantumFarmPlan } from "@/lib/api";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   links?: { title: string; href: string }[];
-  plan?: { day: string; task: string; type: string }[];
+  plan?: { day: number; task: string; type: string; priority: number }[];
+  metadata?: { solverUsed: string; executionTimeMs: number };
 }
 
 export default function AdvisorPage() {
@@ -21,60 +23,58 @@ export default function AdvisorPage() {
   const [messages, setMessages] = useState<Message[]>([
     { 
       role: "assistant", 
-      content: "Hello! I'm your Farmora AI advisor. Ask me anything about soil health, pest control, or type 'Generate Quantum Plan for [Crop]' to see our QUBO-optimized task scheduler." 
+      content: "Hello! I'm your Farmora AI advisor. Ask me anything about soil health, pest control, or type 'Plan for [Crop]' to see our QUBO-optimized task scheduler." 
     }
   ]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
     const userMsg: Message = { role: "user", content: input };
     setMessages(prev => [...prev, userMsg]);
+    const currentInput = input;
     setInput("");
     setIsTyping(true);
 
-    // Mock AI / Quantum response
-    setTimeout(() => {
-      setIsTyping(false);
-      
-      const isPlannerRequest = userMsg.content.toLowerCase().includes("plan") || userMsg.content.toLowerCase().includes("schedule");
-      
-      if (isPlannerRequest) {
-         const planMsg: Message = {
-            role: "assistant",
-            content: "I've run a Simulated Annealing algorithm (QUBO formulation) to optimize your 7-day crop schedule. This maximizes resource usage while respecting biological constraints.",
-            plan: [
-              { day: "Day 1", task: "Soil Aeration & pH Balancing", type: "Prep" },
-              { day: "Day 2", task: "Sow Seeds (Morning) & Light Watering", type: "Planting" },
-              { day: "Day 3", task: "Rest / Sun Exposure", type: "Passive" },
-              { day: "Day 4", task: "Apply Organic Fertilizer (Nitrogen rich)", type: "Nutrients" },
-              { day: "Day 5", task: "Pest Inspection & Neem Oil Spray", type: "Protection" },
-              { day: "Day 6", task: "Deep Watering (Evening)", type: "Hydration" },
-              { day: "Day 7", task: "Prune first true leaves (if applicable)", type: "Maintenance" }
-            ]
-         };
-         setMessages(prev => [...prev, planMsg]);
-      } else {
-        const aiMsg: Message = {
+    const isPlannerRequest = currentInput.toLowerCase().includes("plan") || currentInput.toLowerCase().includes("schedule");
+    
+    if (isPlannerRequest) {
+      try {
+        const cropMatch = currentInput.match(/(?:plan|schedule)\s+(?:for\s+)?(.+)/i);
+        const cropType = cropMatch?.[1]?.trim() || "Spinach";
+        const result = await quantumFarmPlan(cropType, 7);
+        
+        const planMsg: Message = {
           role: "assistant",
-          content: "Based on organic farming principles, for that issue I recommend using a neem oil solution. Mix 5ml of neem oil with 1 liter of water and a drop of soap. Apply every 7 days.",
-          links: [
-            { title: "Neem Oil Mastery Tutorial", href: "/tutorials/3" },
-            { title: "Buy Cold Pressed Neem Oil", href: "/kits/3" }
-          ]
+          content: `I've run a Simulated Annealing algorithm (QUBO formulation) to optimize your 7-day schedule for ${cropType}. This maximizes resource usage while respecting biological constraints.`,
+          plan: result.plan,
+          metadata: { solverUsed: result.solverUsed, executionTimeMs: result.executionTimeMs },
         };
-        setMessages(prev => [...prev, aiMsg]);
+        setMessages(prev => [...prev, planMsg]);
+      } catch (err) {
+        setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I couldn't generate the plan right now. Please try again." }]);
       }
-    }, 1500);
+    } else {
+      await new Promise(r => setTimeout(r, 1000));
+      const aiMsg: Message = {
+        role: "assistant",
+        content: "Based on organic farming principles, I recommend using a neem oil solution. Mix 5ml of neem oil with 1 liter of water and a drop of soap. Apply every 7 days for best results.",
+        links: [
+          { title: "Neem Oil Mastery Tutorial", href: "/tutorials/t2" },
+          { title: "Buy Cold Pressed Neem Oil", href: "/kits" }
+        ]
+      };
+      setMessages(prev => [...prev, aiMsg]);
+    }
+    
+    setIsTyping(false);
   };
 
   return (
     <div className="container max-w-6xl px-4 py-8 h-[calc(100vh-5rem)] flex gap-6 relative">
-      {/* Background Glow */}
       <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full blur-3xl -z-10 pointer-events-none" />
 
-      {/* Sidebar Suggestions */}
       <div className="hidden md:flex flex-col w-72 space-y-6">
         <div>
           <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
@@ -85,16 +85,17 @@ export default function AdvisorPage() {
             {[
               "Best compost for tomatoes?",
               "How to treat aphids naturally?",
-              "Generate Quantum Plan for Spinach",
-              "Improving clay soil"
+              "Plan for Spinach",
+              "Schedule for Tomatoes"
             ].map((prompt, i) => (
               <Button 
                 key={i} 
                 variant="outline" 
                 className="w-full justify-start text-sm h-auto py-4 px-4 whitespace-normal text-left border-border/50 hover:border-primary/50 hover:bg-primary/5 rounded-2xl transition-all shadow-sm"
                 onClick={() => setInput(prompt)}
+                data-testid={`button-prompt-${i}`}
               >
-                {prompt.includes("Quantum") ? (
+                {prompt.includes("Plan") || prompt.includes("Schedule") ? (
                   <Activity className="w-4 h-4 mr-3 text-primary shrink-0" />
                 ) : (
                   <Leaf className="w-4 h-4 mr-3 text-primary shrink-0" />
@@ -122,14 +123,13 @@ export default function AdvisorPage() {
                <span>10,000</span>
              </div>
              <div className="flex justify-between">
-               <span>Constraint strictness:</span>
+               <span>Constraint Strictness:</span>
                <span>High</span>
              </div>
            </CardContent>
         </Card>
       </div>
 
-      {/* Chat Area */}
       <Card className="flex-1 flex flex-col overflow-hidden border-border/50 shadow-xl bg-background/80 backdrop-blur-md rounded-[2rem]">
         <div className="bg-white/50 p-5 border-b flex items-center gap-3 backdrop-blur-sm">
           <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
@@ -169,7 +169,6 @@ export default function AdvisorPage() {
                   )}>
                     <p className="leading-relaxed text-base">{m.content}</p>
                     
-                    {/* Recommendations */}
                     {m.links && (
                       <div className="mt-5 space-y-3 pt-4 border-t border-border/10">
                         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Recommended Resources</p>
@@ -188,17 +187,23 @@ export default function AdvisorPage() {
                     )}
                   </div>
 
-                  {/* Quantum Plan Output */}
                   {m.plan && (
                     <Card className="bg-primary/5 border-primary/20 rounded-[1.5rem] overflow-hidden shadow-md">
-                       <div className="bg-primary/10 p-4 border-b border-primary/10 flex items-center gap-2">
-                         <CalendarDays className="w-5 h-5 text-primary" />
-                         <span className="font-bold text-primary">Optimized 7-Day Schedule</span>
+                       <div className="bg-primary/10 p-4 border-b border-primary/10 flex items-center justify-between">
+                         <span className="font-bold text-primary flex items-center gap-2">
+                           <CalendarDays className="w-5 h-5" />
+                           Optimized {m.plan.length}-Day Schedule
+                         </span>
+                         {m.metadata && (
+                           <span className="text-[10px] font-mono text-muted-foreground">
+                             {m.metadata.solverUsed} &middot; {m.metadata.executionTimeMs}ms
+                           </span>
+                         )}
                        </div>
                        <div className="p-4 space-y-3">
                          {m.plan.map((step, idx) => (
-                           <div key={idx} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-border/50 shadow-sm">
-                             <span className="font-bold text-primary w-12 text-sm">{step.day}</span>
+                           <div key={idx} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-border/50 shadow-sm" data-testid={`plan-step-${idx}`}>
+                             <span className="font-bold text-primary w-14 text-sm">Day {step.day}</span>
                              <div className="flex-1">
                                <p className="text-sm font-medium">{step.task}</p>
                              </div>
@@ -237,12 +242,14 @@ export default function AdvisorPage() {
               placeholder="Ask about crops, soil, or request an optimized plan..." 
               className="flex-1 bg-muted/30 border-border/50 h-14 rounded-full pl-6 pr-14 text-base focus-visible:ring-primary/50 shadow-inner"
               disabled={isTyping}
+              data-testid="input-chat"
             />
             <Button 
               type="submit" 
               size="icon" 
               disabled={!input.trim() || isTyping}
               className="absolute right-2 top-2 h-10 w-10 rounded-full shadow-md hover:scale-105 transition-transform"
+              data-testid="button-send"
             >
               <Send className="w-4 h-4 ml-1" />
             </Button>

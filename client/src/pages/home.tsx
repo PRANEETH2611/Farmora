@@ -1,23 +1,48 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, PlayCircle, Sprout, ShoppingBag, Brain, Leaf, Users, Check, Globe, Award, Sparkles, Shuffle } from "lucide-react";
+import { ArrowRight, PlayCircle, Sprout, ShoppingBag, Leaf, Award, Sparkles, Shuffle } from "lucide-react";
 import { Link } from "wouter";
 import TutorialCard from "@/components/ui-custom/tutorial-card";
 import KitCard from "@/components/ui-custom/kit-card";
-import { MOCK_TUTORIALS, MOCK_KITS } from "@/mock/data";
-import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import QuantumToggle from "@/components/ui-custom/quantum-toggle";
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { tutorialsQuery, kitsQuery, quantumRecommend, quantumRandomCreator, type Tutorial, type Kit } from "@/lib/api";
 
 export default function Home() {
   const [quantumMode, setQuantumMode] = useState(false);
-  const featuredTutorials = MOCK_TUTORIALS.slice(0, 3);
-  const featuredKits = MOCK_KITS.slice(0, 4);
+  const [quantumTutorials, setQuantumTutorials] = useState<Tutorial[]>([]);
+  const [quantumKits, setQuantumKits] = useState<Kit[]>([]);
+  const [featuredCreator, setFeaturedCreator] = useState<string | null>(null);
 
-  // Mock Quantum Reordering
-  const displayTutorials = quantumMode 
-    ? [...featuredTutorials].reverse() 
-    : featuredTutorials;
+  const { data: allTutorials = [], isLoading: tutorialsLoading } = useQuery(tutorialsQuery());
+  const { data: allKits = [], isLoading: kitsLoading } = useQuery(kitsQuery());
+
+  const featuredTutorials = quantumMode && quantumTutorials.length > 0
+    ? quantumTutorials.slice(0, 3)
+    : allTutorials.slice(0, 3);
+
+  const featuredKits = quantumMode && quantumKits.length > 0
+    ? quantumKits.slice(0, 4)
+    : allKits.slice(0, 4);
+
+  async function handleQuantumToggle(enabled: boolean) {
+    setQuantumMode(enabled);
+    if (enabled) {
+      try {
+        const [tutResult, kitResult, randomResult] = await Promise.all([
+          quantumRecommend("tutorials", [], 3),
+          quantumRecommend("kits", [], 4),
+          quantumRandomCreator(),
+        ]);
+        setQuantumTutorials(tutResult.selected as Tutorial[]);
+        setQuantumKits(kitResult.selected as Kit[]);
+        if (randomResult.creator) setFeaturedCreator(randomResult.creator.name);
+      } catch (err) {
+        console.error("Quantum recommendation failed:", err);
+      }
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -40,13 +65,13 @@ export default function Home() {
           
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <Link href="/tutorials">
-              <Button size="lg" className="h-14 px-8 text-lg rounded-full bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20">
+              <Button size="lg" className="h-14 px-8 text-lg rounded-full bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20" data-testid="button-explore-tutorials">
                 Explore Tutorials
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link href="/advisor">
-              <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full border-border bg-white shadow-sm hover:bg-muted">
+              <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full border-border bg-white shadow-sm hover:bg-muted" data-testid="button-ask-ai">
                 Ask Farmora AI
                 <Leaf className="ml-2 h-5 w-5 text-primary" />
               </Button>
@@ -61,14 +86,15 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            <p className="text-sm font-medium">Joined by <span className="text-primary">10,000+</span> growers</p>
+            <p className="text-sm font-medium" data-testid="text-social-proof">Joined by <span className="text-primary">10,000+</span> growers</p>
           </div>
         </div>
         
         <div className="relative group">
           <motion.div 
-            whileHover={{ rotateY: 5, rotateX: -5, perspective: 1000 }}
+            whileHover={{ rotateY: 5, rotateX: -5 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            style={{ perspective: 1000 }}
             className="relative aspect-square overflow-hidden rounded-[4rem] shadow-2xl border-8 border-white bg-muted"
           >
             <img 
@@ -78,7 +104,7 @@ export default function Home() {
             />
           </motion.div>
           
-          <div className="absolute -bottom-6 -left-6 bg-white p-5 rounded-2xl shadow-xl border border-border/50 animate-bounce-subtle max-w-[200px] z-10">
+          <div className="absolute -bottom-6 -left-6 bg-white p-5 rounded-2xl shadow-xl border border-border/50 max-w-[200px] z-10">
              <div className="flex flex-col gap-2">
                <div className="flex items-center gap-2 text-primary font-bold text-xs">
                  <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
@@ -88,7 +114,6 @@ export default function Home() {
              </div>
           </div>
 
-          {/* Quantum Random Feature Badge */}
           <div className="absolute top-8 -right-8 bg-white p-4 rounded-2xl shadow-xl border border-border/50 z-10 hidden md:block">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -96,7 +121,7 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Quantum Pick</p>
-                <p className="text-sm font-bold">Creator of the Day</p>
+                <p className="text-sm font-bold" data-testid="text-creator-of-day">{featuredCreator || "Creator of the Day"}</p>
               </div>
             </div>
           </div>
@@ -140,14 +165,12 @@ export default function Home() {
         <div className="container px-4 relative z-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
             <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <h2 className="text-5xl font-bold tracking-tight">Popular Guides</h2>
-              </div>
+              <h2 className="text-5xl font-bold tracking-tight">Popular Guides</h2>
               <p className="text-xl text-muted-foreground">Trending organic farming techniques.</p>
             </div>
             
             <div className="flex items-center gap-4">
-              <QuantumToggle enabled={quantumMode} onToggle={setQuantumMode} />
+              <QuantumToggle enabled={quantumMode} onToggle={handleQuantumToggle} />
               <Link href="/tutorials">
                 <Button variant="ghost" className="hidden md:flex items-center gap-2 text-lg font-medium hover:bg-transparent hover:text-primary">
                   View All <ArrowRight className="h-5 w-5" />
@@ -156,19 +179,25 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {displayTutorials.map((tutorial, idx) => (
-              <motion.div 
-                key={tutorial.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: idx * 0.1 }}
-              >
-                <TutorialCard tutorial={tutorial} quantumSelected={quantumMode && idx === 0} />
-              </motion.div>
-            ))}
-          </div>
+          {tutorialsLoading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+              {[1,2,3].map(i => <div key={i} className="aspect-video bg-muted animate-pulse rounded-2xl" />)}
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+              {featuredTutorials.map((tutorial, idx) => (
+                <motion.div 
+                  key={tutorial.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: idx * 0.1 }}
+                >
+                  <TutorialCard tutorial={tutorial} quantumSelected={quantumMode && idx === 0} />
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -187,26 +216,37 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
-            {featuredKits.map(kit => (
-              <KitCard key={kit.id} kit={kit} />
-            ))}
-          </div>
+          {kitsLoading ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
+              {[1,2,3,4].map(i => <div key={i} className="aspect-[4/3] bg-muted animate-pulse rounded-xl" />)}
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
+              {featuredKits.map((kit, idx) => (
+                <motion.div
+                  key={kit.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: idx * 0.05 }}
+                >
+                  <KitCard kit={kit as any} quantumSelected={quantumMode && idx === 0} />
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* CTA Section - Matching Image */}
-      <section className="relative py-32 overflow-hidden bg-primary text-primary-foreground text-center">
-        <div className="absolute inset-0 opacity-10">
-           <img src="/images/farmora-hero.png" alt="Overlay" className="w-full h-full object-cover mix-blend-overlay" />
-        </div>
-        <div className="container relative z-10 space-y-8">
-          <h2 className="text-5xl md:text-7xl font-bold tracking-tight">Ready to grow your own food?</h2>
-          <p className="text-xl text-primary-foreground/80 max-w-xl mx-auto">
+      {/* CTA */}
+      <section className="container px-4 py-24">
+        <div className="relative overflow-hidden rounded-[3rem] bg-primary px-8 py-20 text-center text-primary-foreground">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent)]" />
+          <h2 className="relative text-4xl md:text-6xl font-bold mb-4">Ready to grow your own food?</h2>
+          <p className="relative text-lg text-white/80 mb-8 max-w-xl mx-auto">
             Join thousands of organic farmers sharing their knowledge and earning rewards.
           </p>
           <Link href="/upload">
-            <Button size="lg" className="h-16 px-12 text-xl rounded-full bg-[#fdfaf3] text-foreground hover:bg-white shadow-2xl">
+            <Button size="lg" className="relative h-16 px-12 text-xl rounded-full bg-white text-primary hover:bg-white/90 shadow-2xl" data-testid="button-start-sharing">
               Start Sharing Today
             </Button>
           </Link>

@@ -1,33 +1,38 @@
 import TutorialCard from "@/components/ui-custom/tutorial-card";
-import { MOCK_TUTORIALS } from "@/mock/data";
 import { useState } from "react";
-import { Search, SlidersHorizontal, Share2 } from "lucide-react";
+import { Search, Share2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import QuantumToggle from "@/components/ui-custom/quantum-toggle";
 import QAOADemoModal from "@/components/ui-custom/qaoa-demo-modal";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { tutorialsQuery, quantumRecommend, type Tutorial } from "@/lib/api";
 
 export default function TutorialsPage() {
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState({ category: "all", difficulty: "all" });
+  const [category, setCategory] = useState("all");
   const [quantumMode, setQuantumMode] = useState(false);
+  const [quantumResults, setQuantumResults] = useState<Tutorial[]>([]);
 
-  let filteredTutorials = MOCK_TUTORIALS.filter(t => {
-    const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || 
-                          t.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()));
-    const matchesCategory = filters.category === "all" || t.category === filters.category;
-    const matchesDifficulty = filters.difficulty === "all" || t.difficulty === filters.difficulty;
-    
-    return matchesSearch && matchesCategory && matchesDifficulty;
-  });
+  const { data: tutorials = [], isLoading } = useQuery(tutorialsQuery(category, search));
 
-  // Mock Quantum Optimization - reorder logic for demo
-  if (quantumMode) {
-    filteredTutorials = [...filteredTutorials].sort((a, b) => 
-      // Example simulated quantum sort: prioritize beginner diversity
-      a.difficulty === 'Beginner' ? -1 : 1
-    );
+  const displayTutorials = quantumMode && quantumResults.length > 0
+    ? quantumResults
+    : tutorials;
+
+  async function handleQuantumToggle(enabled: boolean) {
+    setQuantumMode(enabled);
+    if (enabled) {
+      try {
+        const result = await quantumRecommend("tutorials", search ? [search] : [], 10);
+        setQuantumResults(result.selected as Tutorial[]);
+      } catch (err) {
+        console.error("Quantum recommendation failed:", err);
+      }
+    } else {
+      setQuantumResults([]);
+    }
   }
 
   return (
@@ -36,7 +41,7 @@ export default function TutorialsPage() {
         <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -z-10 pointer-events-none" />
       )}
       
-      <div className="max-w-4xl mx-auto space-y-8 relative z-10">
+      <div className="max-w-6xl mx-auto space-y-8 relative z-10">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <h1 className="text-5xl font-bold tracking-tight">Tutorials</h1>
@@ -44,7 +49,7 @@ export default function TutorialsPage() {
           </div>
           <div className="flex items-center gap-4 bg-white p-2 rounded-3xl shadow-sm border border-border/50">
              <QAOADemoModal />
-             <QuantumToggle enabled={quantumMode} onToggle={setQuantumMode} />
+             <QuantumToggle enabled={quantumMode} onToggle={handleQuantumToggle} />
           </div>
         </div>
 
@@ -54,16 +59,19 @@ export default function TutorialsPage() {
             <Input 
               placeholder="Search tutorials..." 
               className="h-14 pl-12 rounded-2xl bg-white border-border shadow-sm focus-visible:ring-primary"
+              value={search}
               onChange={(e) => setSearch(e.target.value)}
+              data-testid="input-search-tutorials"
             />
           </div>
           <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
             {["All", "Compost", "Bio-pesticide", "Fertilizer", "Planting", "Soil Health"].map((cat) => (
               <Button 
                 key={cat}
-                variant={filters.category === cat.toLowerCase() || (cat === "All" && filters.category === "all") ? "default" : "outline"}
+                variant={category === cat.toLowerCase() || (cat === "All" && category === "all") ? "default" : "outline"}
                 className="h-14 px-6 rounded-2xl font-medium border-border whitespace-nowrap"
-                onClick={() => setFilters(prev => ({ ...prev, category: cat.toLowerCase() }))}
+                onClick={() => setCategory(cat.toLowerCase())}
+                data-testid={`button-filter-${cat.toLowerCase()}`}
               >
                 {cat}
               </Button>
@@ -79,15 +87,19 @@ export default function TutorialsPage() {
            >
              <Share2 className="w-5 h-5 text-primary mt-1" />
              <div>
-               <p className="font-bold text-sm text-primary">Graph-Based Discovery Active</p>
-               <p className="text-sm text-muted-foreground">Results are now optimized using simulated quantum annealing, maximizing relevance and category diversity based on shared tags.</p>
+               <p className="font-bold text-sm text-primary">Quantum Optimization Active</p>
+               <p className="text-sm text-muted-foreground">Results optimized using simulated quantum annealing (QUBO), maximizing relevance and category diversity.</p>
              </div>
            </motion.div>
         )}
 
-        {filteredTutorials.length > 0 ? (
+        {isLoading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {filteredTutorials.map((tutorial, idx) => (
+            {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-video bg-muted animate-pulse rounded-2xl" />)}
+          </div>
+        ) : displayTutorials.length > 0 ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+            {displayTutorials.map((tutorial, idx) => (
               <motion.div
                 key={tutorial.id}
                 layout

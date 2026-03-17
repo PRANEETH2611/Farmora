@@ -1,23 +1,35 @@
 import KitCard from "@/components/ui-custom/kit-card";
-import { MOCK_KITS } from "@/mock/data";
 import { useState } from "react";
 import { SlidersHorizontal, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QuantumToggle from "@/components/ui-custom/quantum-toggle";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { kitsQuery, quantumRecommend, type Kit } from "@/lib/api";
 
 export default function KitsPage() {
   const [search, setSearch] = useState("");
   const [quantumMode, setQuantumMode] = useState(false);
-  // In a real app, we'd have a price filter, etc.
-  
-  let filteredKits = MOCK_KITS.filter(k => 
-    k.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const [quantumKits, setQuantumKits] = useState<Kit[]>([]);
 
-  // Mock Quantum Optimization
-  if (quantumMode) {
-    filteredKits = [...filteredKits].sort((a, b) => b.rating - a.rating);
+  const { data: allKits = [], isLoading } = useQuery(kitsQuery(search));
+
+  const displayKits = quantumMode && quantumKits.length > 0
+    ? quantumKits
+    : allKits;
+
+  async function handleQuantumToggle(enabled: boolean) {
+    setQuantumMode(enabled);
+    if (enabled) {
+      try {
+        const result = await quantumRecommend("kits", search ? [search] : [], 10);
+        setQuantumKits(result.selected as Kit[]);
+      } catch (err) {
+        console.error("Quantum recommendation failed:", err);
+      }
+    } else {
+      setQuantumKits([]);
+    }
   }
 
   return (
@@ -32,11 +44,7 @@ export default function KitsPage() {
             <p className="text-xl text-muted-foreground">Curated sustainable tools to help you get started.</p>
           </div>
           <div className="flex items-center gap-4 bg-white p-2 rounded-3xl shadow-sm border border-border/50">
-             <QuantumToggle enabled={quantumMode} onToggle={setQuantumMode} />
-             <Button variant="outline" className="h-10 px-6 rounded-full gap-2 font-medium border-primary/20 text-primary">
-               <SlidersHorizontal className="h-4 w-4" />
-               Filters
-             </Button>
+             <QuantumToggle enabled={quantumMode} onToggle={handleQuantumToggle} />
           </div>
         </div>
 
@@ -49,24 +57,30 @@ export default function KitsPage() {
              <Share2 className="w-5 h-5 text-primary mt-1" />
              <div>
                <p className="font-bold text-sm text-primary">Quantum Recommendations Active</p>
-               <p className="text-sm text-muted-foreground">These kits have been selected by analyzing the optimal path through our community's success graph using simulated annealing.</p>
+               <p className="text-sm text-muted-foreground">Kits selected via QUBO simulated annealing, optimizing for relevance and community success scores.</p>
              </div>
            </motion.div>
         )}
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
-          {filteredKits.map((kit, idx) => (
-            <motion.div
-               key={kit.id}
-               layout
-               initial={{ opacity: 0, scale: 0.95 }}
-               animate={{ opacity: 1, scale: 1 }}
-               transition={{ duration: 0.3, delay: idx * 0.05 }}
-            >
-              <KitCard kit={kit} quantumSelected={quantumMode && idx < 2} />
-            </motion.div>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
+            {[1,2,3,4].map(i => <div key={i} className="aspect-[4/3] bg-muted animate-pulse rounded-xl" />)}
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
+            {displayKits.map((kit, idx) => (
+              <motion.div
+                 key={kit.id}
+                 layout
+                 initial={{ opacity: 0, scale: 0.95 }}
+                 animate={{ opacity: 1, scale: 1 }}
+                 transition={{ duration: 0.3, delay: idx * 0.05 }}
+              >
+                <KitCard kit={kit} quantumSelected={quantumMode && idx < 2} />
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
