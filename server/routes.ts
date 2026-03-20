@@ -123,10 +123,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // ── QUANTUM: QAOA DEMO ───────────────────────────────────────────────────────
   app.post("/api/quantum/qaoa-demo", async (req, res) => {
-    const { itemCount = 8 } = req.body;
-    const result = simulateQAOA(Math.min(itemCount, 12));
-    await storage.logQuantumCall("/quantum/qaoa-demo", req.body, { optimalState: result.optimalState }, "qaoa_simulator", result.executionTimeMs);
-    res.json(result);
+    try {
+      console.log("[qaoa-demo] request received, itemCount:", req.body?.itemCount ?? 6);
+      const { itemCount = 6 } = req.body;
+      const result = simulateQAOA(Math.min(itemCount, 8)); // cap at 8 qubits (256 states max)
+      console.log("[qaoa-demo] done in", result.executionTimeMs, "ms, optimal:", result.optimalState);
+      await storage.logQuantumCall("/quantum/qaoa-demo", req.body, { optimalState: result.optimalState }, "qaoa_simulator", result.executionTimeMs);
+      res.json(result);
+    } catch (err: any) {
+      console.error("[qaoa-demo] error:", err.message);
+      res.status(500).json({ error: "QAOA simulation failed", message: err.message });
+    }
   });
 
   // ── QUANTUM: CREATOR OPTIMIZE ────────────────────────────────────────────────
