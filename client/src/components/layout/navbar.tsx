@@ -6,13 +6,11 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ui-custom/theme-toggle";
 import { useCart } from "@/lib/cart";
-import { useAuth } from "@/lib/auth";
 
 export default function Navbar() {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const { itemCount } = useCart();
-  const { user, isAuthenticated, logout } = useAuth();
 
   const navItems = [
     { href: "/", label: "Home", icon: Sprout },
@@ -48,15 +46,6 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          {isAuthenticated ? (
-            <Button variant="ghost" size="sm" className="rounded-full" onClick={logout}>
-              {user?.name} (Logout)
-            </Button>
-          ) : (
-            <Link href="/login">
-              <Button variant="ghost" size="sm" className="rounded-full">Login</Button>
-            </Link>
-          )}
           <Link href="/cart">
             <Button variant="outline" size="sm" className="rounded-full">
               Cart ({itemCount})
@@ -117,17 +106,6 @@ export default function Navbar() {
                     Cart ({itemCount})
                   </Button>
                 </Link>
-                {isAuthenticated ? (
-                  <div className="px-4">
-                    <Button variant="ghost" className="w-full rounded-full" onClick={() => { logout(); setIsOpen(false); }}>
-                      {user?.name} (Logout)
-                    </Button>
-                  </div>
-                ) : (
-                  <Link href="/login" onClick={() => setIsOpen(false)} className="px-4">
-                    <Button variant="ghost" className="w-full rounded-full">Login</Button>
-                  </Link>
-                )}
                 <div className="flex items-center justify-between px-4">
                   <span className="text-sm text-muted-foreground">Dark mode</span>
                   <ThemeToggle />
