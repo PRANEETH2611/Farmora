@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -20,12 +20,17 @@ import FarmPlanPage from "@/pages/farm-plan";
 import CartPage from "@/pages/cart";
 import PoliciesPage from "@/pages/policies";
 import InfoPage from "@/pages/info-page";
+import AuthRolePage from "@/pages/auth-role";
+import { CreatorLoginPage, CreatorSignupPage, UserLoginPage, UserSignupPage } from "@/pages/auth-form-page";
 import { CartProvider } from "@/lib/cart";
 
 function Router() {
+  const [location] = useLocation();
+  const isAuthRoute = location === "/login" || location.startsWith("/login/") || location.startsWith("/signup/");
+
   return (
     <div className="flex flex-col min-h-screen bg-background font-sans text-foreground transition-colors duration-300">
-      <Navbar />
+      {!isAuthRoute && <Navbar />}
       <main className="flex-1">
         <Switch>
           <Route path="/" component={Home} />
@@ -38,6 +43,11 @@ function Router() {
           <Route path="/cart" component={CartPage} />
           <Route path="/creator" component={CreatorDashboard} />
           <Route path="/farm-plan" component={FarmPlanPage} />
+          <Route path="/login" component={AuthRolePage} />
+          <Route path="/login/user" component={UserLoginPage} />
+          <Route path="/login/creator" component={CreatorLoginPage} />
+          <Route path="/signup/user" component={UserSignupPage} />
+          <Route path="/signup/creator" component={CreatorSignupPage} />
           <Route path="/policies" component={PoliciesPage} />
           <Route path="/community-guidelines">
             <InfoPage
@@ -60,7 +70,7 @@ function Router() {
           <Route component={NotFound} />
         </Switch>
       </main>
-      <Footer />
+      {!isAuthRoute && <Footer />}
     </div>
   );
 }

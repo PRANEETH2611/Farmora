@@ -3,33 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Download, Globe, Bookmark, Share2, Play, CheckCircle, ShoppingBag, Sparkles } from "lucide-react";
+import { Download, Globe, Bookmark, Share2, CheckCircle, ShoppingBag, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import { tutorialQuery, kitsQuery } from "@/lib/api";
 import { formatRupee } from "@/lib/utils";
 import QuantumDiscovery from "@/components/ui-custom/quantum-discovery";
-import { useState } from "react";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/hooks/use-toast";
-
-
-const tutorialVideos: Record<string, string> = {
-  t1: "https://www.youtube.com/embed/LKAUY31_q_s?autoplay=1&rel=0",
-  t2: "https://www.youtube.com/embed/VjxKkm9khJk?autoplay=1&rel=0",
-  t3: "https://www.youtube.com/embed/uAMniWJm2vo?autoplay=1&rel=0",
-  t4: "https://www.youtube.com/embed/EH6IBAsNZPE?autoplay=1&rel=0",
-  t5: "https://www.youtube.com/embed/Jtw7pnqFeS4?autoplay=1&rel=0",
-  t6: "https://www.youtube.com/embed/RY432YI7SoE?autoplay=1&rel=0",
-  t7: "https://www.youtube.com/embed/tZJpo5N28zc?autoplay=1&rel=0",
-  t8: "https://www.youtube.com/embed/Z5ozNM-Hb0w?autoplay=1&rel=0",
-};
+import TutorialVideoPlayer from "@/components/ui-custom/tutorial-video-player";
+import { tutorialVideos } from "@/lib/tutorial-videos";
 
 
 export default function TutorialDetail() {
   const params = useParams();
   const id = params.id || "t1";
-  const [isPlaying, setIsPlaying] = useState(false);
   const { addToCart } = useCart();
   const { toast } = useToast();
   const { data: tutorial, isLoading } = useQuery(tutorialQuery(id));
@@ -48,7 +36,7 @@ export default function TutorialDetail() {
   }
 
   const relatedKits = allKits.slice(0, 2);
-  const videoSrc = tutorialVideos[id];
+  const videoUrl = tutorialVideos[id];
 
   function handleAddKitToCart(kit: (typeof relatedKits)[number]) {
     addToCart(kit);
@@ -72,43 +60,7 @@ export default function TutorialDetail() {
         {/* ── Main content ─────────────────────────────────────────────────── */}
         <div className="lg:col-span-2 space-y-8">
           {/* Video hero */}
-          <div className="aspect-video bg-black rounded-[2rem] overflow-hidden relative group shadow-xl">
-            {!isPlaying || !videoSrc ? (
-              <>
-                <img src={tutorial.thumbnail} alt={tutorial.title} className="w-full h-full object-cover opacity-60" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Button
-                    size="icon"
-                    className="h-20 w-20 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 text-white border-2 border-white/50 transition-transform hover:scale-110"
-                    data-testid="button-play-video"
-                    onClick={() => setIsPlaying(true)}
-                  >
-                    <Play className="h-10 w-10 ml-2 fill-current" />
-                  </Button>
-                </div>
-                {!videoSrc && (
-                  <div className="absolute top-4 right-4">
-                    <Badge variant="secondary">Video source unavailable</Badge>
-                  </div>
-                )}
-              </>
-            ) : (
-              <video
-                className="w-full h-full object-cover"
-                controls
-                autoPlay
-                playsInline
-                poster={tutorial.thumbnail}
-                src={videoSrc}
-                data-testid="video-tutorial-player"
-              />
-            )}
-            <div className="absolute bottom-4 left-4">
-              <Badge className="bg-primary text-white border-none">
-                <Sparkles className="w-3 h-3 mr-1" /> AI Summarized
-              </Badge>
-            </div>
-          </div>
+          <TutorialVideoPlayer title={tutorial.title} thumbnail={tutorial.thumbnail} videoUrl={videoUrl} />
 
           {/* Title + meta */}
           <div className="space-y-4">

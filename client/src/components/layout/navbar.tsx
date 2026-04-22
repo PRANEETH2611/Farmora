@@ -1,11 +1,20 @@
 import { Link, useLocation } from "wouter";
-import { Sprout, Video, ShoppingBag, Brain, Upload, User, Menu, CalendarDays } from "lucide-react";
+import { Sprout, Video, ShoppingBag, Brain, Upload, User, Menu, CalendarDays, LogIn, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ui-custom/theme-toggle";
 import { useCart } from "@/lib/cart";
+import { persistSelectedRole } from "@/lib/auth-preferences";
 
 export default function Navbar() {
   const [location] = useLocation();
@@ -46,12 +55,42 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-2 rounded-full">
+                <LogIn className="h-4 w-4" />
+                Login
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 rounded-2xl p-2">
+              <DropdownMenuLabel>Continue with Farmora</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <Link href="/login/user" onClick={() => persistSelectedRole("user")}>
+                <DropdownMenuItem className="rounded-xl">
+                  <User className="h-4 w-4" />
+                  User Login
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/login/creator" onClick={() => persistSelectedRole("creator")}>
+                <DropdownMenuItem className="rounded-xl">
+                  <Crown className="h-4 w-4" />
+                  Creator Login
+                </DropdownMenuItem>
+              </Link>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Link href="/cart">
             <Button variant="outline" size="sm" className="rounded-full">
               Cart ({itemCount})
             </Button>
           </Link>
           <ThemeToggle />
+          <Link href="/login">
+            <Button variant="default" size="sm" className="gap-2 bg-primary hover:bg-primary/90 text-white rounded-full">
+              <Sprout className="h-4 w-4" />
+              Get Started
+            </Button>
+          </Link>
           <Link href="/upload">
             <Button variant="default" size="sm" className="gap-2 bg-primary hover:bg-primary/90 text-white rounded-full">
               <Upload className="h-4 w-4" />
@@ -91,6 +130,26 @@ export default function Navbar() {
                 <Link href="/cart" onClick={() => setIsOpen(false)} className="px-4">
                   <Button variant="outline" className="w-full rounded-full">
                     Cart ({itemCount})
+                  </Button>
+                </Link>
+                <div className="grid grid-cols-2 gap-2 px-4">
+                  <Link href="/login/user" onClick={() => { persistSelectedRole("user"); setIsOpen(false); }}>
+                    <Button variant="outline" className="w-full rounded-full gap-2">
+                      <User className="h-4 w-4" />
+                      User Login
+                    </Button>
+                  </Link>
+                  <Link href="/login/creator" onClick={() => { persistSelectedRole("creator"); setIsOpen(false); }}>
+                    <Button variant="outline" className="w-full rounded-full gap-2">
+                      <Crown className="h-4 w-4" />
+                      Creator
+                    </Button>
+                  </Link>
+                </div>
+                <Link href="/login" onClick={() => setIsOpen(false)} className="px-4">
+                  <Button className="w-full gap-2 rounded-full">
+                    <Sprout className="h-4 w-4" />
+                    Get Started
                   </Button>
                 </Link>
                 <div className="flex items-center justify-between px-4">
