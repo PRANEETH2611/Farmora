@@ -17,6 +17,9 @@ import AdvisorPage from "@/pages/advisor";
 import KitsPage from "@/pages/kits";
 import CreatorDashboard from "@/pages/creator";
 import FarmPlanPage from "@/pages/farm-plan";
+import CartPage from "@/pages/cart";
+import PoliciesPage from "@/pages/policies";
+import { CartProvider } from "@/lib/cart";
 
 function Router() {
   return (
@@ -31,8 +34,10 @@ function Router() {
           <Route path="/upload" component={UploadPage} />
           <Route path="/advisor" component={AdvisorPage} />
           <Route path="/kits" component={KitsPage} />
+          <Route path="/cart" component={CartPage} />
           <Route path="/creator" component={CreatorDashboard} />
           <Route path="/farm-plan" component={FarmPlanPage} />
+          <Route path="/policies" component={PoliciesPage} />
           <Route component={NotFound} />
         </Switch>
       </main>
@@ -44,12 +49,14 @@ function Router() {
 function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </QueryClientProvider>
+      <CartProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </CartProvider>
     </ThemeProvider>
   );
 }
